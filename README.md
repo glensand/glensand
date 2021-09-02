@@ -1,6 +1,6 @@
 Yoy may want to:
 - Offer me a job on an interesting project,
-- Check the repos I'm working on right now: [hope](https://github.com/glensand/hope), [mercury](https://github.com/glensand/Mercury), [CPhysics](https://github.com/glensand/CPhysics)
+- Check the repos I'm working on right now: [hope](https://github.com/glensand/hope), [congenial-disco](https://github.com/glensand/congenial-disco)
 - Check my [gists](https://gist.github.com/glensand).
 
 <!--
