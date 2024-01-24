@@ -1,7 +1,12 @@
 Yoy may want to:
-- Check the repos I'm working on right now: [hope](https://github.com/glensand/hope), [congenial-disco](https://github.com/glensand/congenial-disco)
+- Check the repos I'm working on right now:
+  - [hope-metaprogramming](https://github.com/glensand/hope-core)
+  - [hope-threading](https://github.com/glensand/hope-threading)
+  - [hope-json](https://github.com/glensand/hope-json)
+  - [hope-serialization](https://github.com/glensand/hope-serialization)
 - Check my [gists](https://gist.github.com/glensand).
-- Message me in TG
+- Ask me about: UE games optimization, metaprogramming/concurrency
+- Message me in TG (@glensand)
 
 <!--
 **glensand/glensand** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
