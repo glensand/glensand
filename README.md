@@ -2,8 +2,10 @@ Yoy may want to:
 - Check the repos I'm working on right now:
   - [hope-metaprogramming](https://github.com/glensand/hope-core)
   - [hope-threading](https://github.com/glensand/hope-threading)
-  - [hope-json](https://github.com/glensand/hope-json)
   - [hope-proto](https://github.com/glensand/hope-proto)
+  - [hope-json](https://github.com/glensand/hope-json)
+  - [hope-io](https://github.com/glensand/hope-io)
+  - [hope-log](https://github.com/glensand/hope-logger)
 - Check my [gists](https://gist.github.com/glensand).
 - Ask me about: UE games optimization, metaprogramming/concurrency
 - Message me in TG (@glensand)
