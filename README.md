@@ -3,7 +3,7 @@ Yoy may want to:
   - [hope-metaprogramming](https://github.com/glensand/hope-core)
   - [hope-threading](https://github.com/glensand/hope-threading)
   - [hope-json](https://github.com/glensand/hope-json)
-  - [hope-serialization](https://github.com/glensand/hope-serialization)
+  - [hope-proto](https://github.com/glensand/hope-serialization)
 - Check my [gists](https://gist.github.com/glensand).
 - Ask me about: UE games optimization, metaprogramming/concurrency
 - Message me in TG (@glensand)
