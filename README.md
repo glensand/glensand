@@ -1,6 +1,6 @@
 Yoy may want to:
 - Check the repos I'm working on right now:
-  - [hope-metaprogramming](https://github.com/glensand/hope-core)
+  - [hope-core](https://github.com/glensand/hope-core)
   - [hope-threading](https://github.com/glensand/hope-threading)
   - [hope-proto](https://github.com/glensand/hope-proto)
   - [hope-json](https://github.com/glensand/hope-json)
