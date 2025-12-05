@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++ Memory Order Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --bg-code: #0f0f0f;
+            --bg-elevated: #222;
+            --border: #333;
+            --text: #ccc;
+            --text-muted: #888;
+            --text-bright: #fff;
+            --accent: #7cb7ff;
+            --green: #8bc34a;
+            --orange: #ffb74d;
+            --red: #ef5350;
+            --purple: #b39ddb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 15px;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            letter-spacing: -0.02em;
+        }
+
+        .memory-orders-bar {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .memory-order-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+        }
+
+        .memory-order-item .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 1px;
+        }
+
+        .memory-order-item code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text);
+        }
+
+        .memory-order-item .hint {
+            color: var(--text-muted);
+            font-size: 0.65rem;
+        }
+
+        .dot.relaxed { background: var(--orange); }
+        .dot.acquire { background: var(--accent); }
+        .dot.release { background: var(--green); }
+        .dot.acq_rel { background: var(--purple); }
+        .dot.seq_cst { background: var(--red); }
+
+        /* Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 2rem;
+        }
+
+        /* Input Panel */
+        .input-panel {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            font-family: inherit;
+        }
+
+        .tab:hover {
+            color: var(--text);
+        }
+
+        .tab.active {
+            color: var(--text-bright);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            padding: 0.6rem 0.75rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text);
+            outline: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            accent-color: var(--accent);
+        }
+
+        .checkbox-group label {
+            margin-bottom: 0;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+
+        /* Buttons */
+        .btn {
+            font-family: inherit;
+            font-size: 0.85rem;
+            padding: 0.6rem 1rem;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn:hover {
+            border-color: var(--text-muted);
+            color: var(--text-bright);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #8dc4ff;
+            border-color: #8dc4ff;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Operations List */
+        .operations-list {
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        .operation-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+
+        .operation-item:last-child {
+            border-bottom: none;
+        }
+
+        .op-type-tag {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.2rem 0.4rem;
+            background: var(--bg-code);
+            color: var(--text-muted);
+        }
+
+        .op-type-tag.write { color: var(--green); }
+        .op-type-tag.read { color: var(--accent); }
+        .op-type-tag.rmw { color: var(--orange); }
+        .op-type-tag.fence { color: var(--purple); }
+
+        .op-code {
+            flex: 1;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text);
+        }
+
+        .op-order {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            font-size: 0.9rem;
+            line-height: 1;
+        }
+
+        .delete-btn:hover {
+            color: var(--red);
+        }
+
+        /* Code Preview */
+        .code-preview-section {
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        pre.code-preview {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            background: var(--bg-code);
+            padding: 1rem;
+            overflow-x: auto;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        pre.code-preview .comment {
+            color: var(--text-muted);
+        }
+
+        /* Visualization Panel */
+        .viz-panel {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            min-height: 400px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        /* Timeline */
+        .timeline-section {
+            margin-bottom: 2rem;
+        }
+
+        .timeline-section:last-child {
+            margin-bottom: 0;
+        }
+
+        pre.code-block {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            background: var(--bg-code);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            color: var(--accent);
+            border: 1px solid var(--border);
+        }
+
+        .timeline {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding: 1rem 0;
+        }
+
+        .timeline-item {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            min-width: 100px;
+            text-align: center;
+            position: relative;
+        }
+
+        .timeline-item.atomic {
+            border-color: var(--purple);
+        }
+
+        .timeline-item .var-name {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-bright);
+        }
+
+        .timeline-item .op-details {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .timeline-item .order-tag {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.55rem;
+            padding: 0.1rem 0.3rem;
+            background: var(--bg);
+            border: 1px solid;
+            text-transform: uppercase;
+        }
+
+        .order-tag.order-relaxed { border-color: var(--orange); color: var(--orange); }
+        .order-tag.order-acquire { border-color: var(--accent); color: var(--accent); }
+        .order-tag.order-release { border-color: var(--green); color: var(--green); }
+        .order-tag.order-acq_rel { border-color: var(--purple); color: var(--purple); }
+        .order-tag.order-seq_cst { border-color: var(--red); color: var(--red); }
+
+        .arrow {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+
+        /* Reorderings */
+        .reordering-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .reordering-option {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+        }
+
+        .reordering-option.valid {
+            border-left: 3px solid var(--green);
+        }
+
+        .reordering-option.invalid {
+            border-left: 3px solid var(--red);
+            opacity: 0.7;
+        }
+
+        .reordering-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .reordering-status {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .status-valid {
+            color: var(--green);
+        }
+
+        .status-invalid {
+            color: var(--red);
+        }
+
+        .compact-timeline {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .compact-item {
+            padding: 0.25rem 0.5rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+        }
+
+        .compact-item.atomic {
+            border-color: var(--purple);
+        }
+
+        pre.reordering-code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            line-height: 1.5;
+            background: var(--bg);
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .reordering-reason {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem 1rem;
+            }
+            .memory-orders-bar {
+                gap: 1rem;
+            }
+        }
+
+        .no-ops {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>C++ Memory Order Visualizer</h1>
+                <div class="memory-orders-bar">
+                    <div class="memory-order-item"><span class="dot relaxed"></span><code>relaxed</code><span class="hint">no constraints</span></div>
+                    <div class="memory-order-item"><span class="dot acquire"></span><code>acquire</code><span class="hint">no reorder before</span></div>
+                    <div class="memory-order-item"><span class="dot release"></span><code>release</code><span class="hint">no reorder after</span></div>
+                    <div class="memory-order-item"><span class="dot acq_rel"></span><code>acq_rel</code><span class="hint">acquire + release</span></div>
+                    <div class="memory-order-item"><span class="dot seq_cst"></span><code>seq_cst</code><span class="hint">total order</span></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <!-- Input Panel -->
+            <div class="input-panel">
+                <div class="section-title">Add Operation</div>
+                
+                <div class="tabs">
+                    <button class="tab active" data-tab="manual">Manual</button>
+                    <button class="tab" data-tab="code">Parse Code</button>
+                </div>
+
+                <div class="tab-content active" id="manual-tab">
+                    <div class="input-group">
+                        <label>Variable Name</label>
+                        <input type="text" id="var-name" placeholder="x, data, flag">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Operation Type</label>
+                        <select id="op-type">
+                            <option value="read">Read (Load)</option>
+                            <option value="write">Write (Store)</option>
+                            <option value="rmw">Read-Modify-Write</option>
+                            <option value="fence">Memory Fence</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Value (for writes)</label>
+                        <input type="text" id="op-value" placeholder="1, true, ptr">
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="is-atomic">
+                        <label for="is-atomic">std::atomic</label>
+                    </div>
+
+                    <div class="input-group" id="memory-order-group">
+                        <label>Memory Order</label>
+                        <select id="memory-order">
+                            <option value="relaxed">memory_order_relaxed</option>
+                            <option value="acquire">memory_order_acquire</option>
+                            <option value="release">memory_order_release</option>
+                            <option value="acq_rel">memory_order_acq_rel</option>
+                            <option value="seq_cst" selected>memory_order_seq_cst</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" id="add-op-btn">+ Add</button>
+                </div>
+
+                <div class="tab-content" id="code-tab">
+                    <div class="input-group">
+                        <label>Paste C++ Code</label>
+                        <textarea id="code-input" placeholder="x.store(1, memory_order_release);
+auto val = y.load(memory_order_acquire);
+data = 42;"></textarea>
+                    </div>
+                    <button class="btn btn-primary" id="parse-code-btn">Parse</button>
+                </div>
+
+                <div class="operations-list" id="operations-list">
+                    <p class="no-ops">No operations added</p>
+                </div>
+
+                <div class="code-preview-section">
+                    <div class="section-title">Generated Code</div>
+                    <pre class="code-preview" id="code-preview"><span class="comment">// Add operations to see generated code</span></pre>
+                </div>
+
+                <div class="btn-group" style="margin-top: 1rem;">
+                    <button class="btn" id="clear-btn">Clear</button>
+                    <button class="btn btn-primary" id="visualize-btn">Visualize</button>
+                </div>
+            </div>
+
+            <!-- Visualization Panel -->
+            <div class="viz-panel">
+                <div class="section-title">Reordering Analysis</div>
+                
+                <div id="viz-content">
+                    <div class="empty-state">
+                        <p>Add operations and click "Visualize"<br>to see possible reorderings</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let operations = [];
+        let nextId = 1;
+
+        // DOM Elements
+        const varNameInput = document.getElementById('var-name');
+        const opTypeSelect = document.getElementById('op-type');
+        const opValueInput = document.getElementById('op-value');
+        const isAtomicCheckbox = document.getElementById('is-atomic');
+        const memoryOrderSelect = document.getElementById('memory-order');
+        const memoryOrderGroup = document.getElementById('memory-order-group');
+        const addOpBtn = document.getElementById('add-op-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const visualizeBtn = document.getElementById('visualize-btn');
+        const operationsList = document.getElementById('operations-list');
+        const vizContent = document.getElementById('viz-content');
+        const codeInput = document.getElementById('code-input');
+        const parseCodeBtn = document.getElementById('parse-code-btn');
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+            });
+        });
+
+        // Toggle memory order visibility
+        isAtomicCheckbox.addEventListener('change', () => {
+            memoryOrderGroup.style.display = isAtomicCheckbox.checked ? 'block' : 'none';
+        });
+        memoryOrderGroup.style.display = 'none';
+
+        // Add operation
+        addOpBtn.addEventListener('click', () => {
+            const varName = varNameInput.value.trim();
+            if (!varName && opTypeSelect.value !== 'fence') {
+                alert('Please enter a variable name');
+                return;
+            }
+
+            operations.push({
+                id: nextId++,
+                varName: varName || 'fence',
+                type: opTypeSelect.value,
+                value: opValueInput.value.trim(),
+                isAtomic: isAtomicCheckbox.checked,
+                memoryOrder: isAtomicCheckbox.checked ? memoryOrderSelect.value : 'none'
+            });
+
+            renderOperationsList();
+            renderCodePreview();
+            varNameInput.value = '';
+            opValueInput.value = '';
+        });
+
+        // Memory order formatting
+        function formatMemoryOrder(order) {
+            return `std::memory_order_${order}`;
+        }
+
+        // Generate C++ code
+        function generateCppCode(op) {
+            if (op.type === 'fence') {
+                return `std::atomic_thread_fence(${formatMemoryOrder(op.memoryOrder)});`;
+            }
+            
+            if (op.isAtomic) {
+                switch (op.type) {
+                    case 'read':
+                        return `auto val = ${op.varName}.load(${formatMemoryOrder(op.memoryOrder)});`;
+                    case 'write':
+                        return `${op.varName}.store(${op.value || '0'}, ${formatMemoryOrder(op.memoryOrder)});`;
+                    case 'rmw':
+                        return `${op.varName}.fetch_add(${op.value || '1'}, ${formatMemoryOrder(op.memoryOrder)});`;
+                    default:
+                        return `// ${op.varName}`;
+                }
+            } else {
+                switch (op.type) {
+                    case 'read': return `auto val = ${op.varName};`;
+                    case 'write': return `${op.varName} = ${op.value || '0'};`;
+                    case 'rmw': return `${op.varName} += ${op.value || '1'};`;
+                    default: return `// ${op.varName}`;
+                }
+            }
+        }
+
+        // Generate declarations
+        function generateDeclarations() {
+            const vars = new Map();
+            operations.forEach(op => {
+                if (op.type !== 'fence' && !vars.has(op.varName)) {
+                    vars.set(op.varName, op.isAtomic);
+                }
+            });
+            
+            const decls = [];
+            vars.forEach((isAtomic, varName) => {
+                decls.push(isAtomic ? `std::atomic&lt;int&gt; ${varName}{0};` : `int ${varName} = 0;`);
+            });
+            return decls;
+        }
+
+        // Render code preview
+        function renderCodePreview() {
+            const codePreview = document.getElementById('code-preview');
+            if (operations.length === 0) {
+                codePreview.innerHTML = '<span class="comment">// Add operations to see generated code</span>';
+                return;
+            }
+
+            const declarations = generateDeclarations();
+            const code = operations.map(op => generateCppCode(op));
+            
+            codePreview.innerHTML = `<span class="comment">// Declarations</span>\n${declarations.join('\n')}\n\n<span class="comment">// Operations</span>\n${code.join('\n')}`;
+        }
+
+        // Render operations list
+        function renderOperationsList() {
+            if (operations.length === 0) {
+                operationsList.innerHTML = '<p class="no-ops">No operations added</p>';
+                return;
+            }
+
+            operationsList.innerHTML = operations.map(op => `
+                <div class="operation-item">
+                    <span class="op-type-tag ${op.type}">${op.type}</span>
+                    <span class="op-code">${formatOpDisplay(op)}</span>
+                    ${op.isAtomic ? `<span class="op-order">${op.memoryOrder}</span>` : ''}
+                    <button class="delete-btn" onclick="deleteOperation(${op.id})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function formatOpDisplay(op) {
+            if (op.type === 'fence') return 'atomic_thread_fence()';
+            if (op.isAtomic) {
+                if (op.type === 'read') return `${op.varName}.load()`;
+                if (op.type === 'write') return `${op.varName}.store(${op.value || '0'})`;
+                if (op.type === 'rmw') return `${op.varName}.fetch_add(${op.value || '1'})`;
+            } else {
+                if (op.type === 'read') return `val = ${op.varName}`;
+                if (op.type === 'write') return `${op.varName} = ${op.value || '0'}`;
+                if (op.type === 'rmw') return `${op.varName} += ${op.value || '1'}`;
+            }
+            return op.varName;
+        }
+
+        window.deleteOperation = function(id) {
+            operations = operations.filter(op => op.id !== id);
+            renderOperationsList();
+            renderCodePreview();
+        };
+
+        clearBtn.addEventListener('click', () => {
+            operations = [];
+            renderOperationsList();
+            renderCodePreview();
+            vizContent.innerHTML = '<div class="empty-state"><p>Add operations and click "Visualize"<br>to see possible reorderings</p></div>';
+        });
+
+        // Parse code
+        parseCodeBtn.addEventListener('click', () => {
+            const code = codeInput.value;
+            const parsedOps = parseCode(code);
+            operations = [...operations, ...parsedOps];
+            renderOperationsList();
+            renderCodePreview();
+        });
+
+        function parseCode(code) {
+            const ops = [];
+            // Split by semicolons and newlines to handle multiple statements
+            const statements = code.split(/[;\n]/).map(s => s.trim()).filter(s => s && !s.startsWith('//'));
+            
+            for (const stmt of statements) {
+                let match;
+                
+                // .store(value, memory_order) - atomic write
+                match = stmt.match(/(\w+)\.store\s*\(\s*([^,)]+)\s*(?:,\s*((?:std::)?memory_order_\w+))?\s*\)/);
+                if (match) {
+                    let value = match[2].trim();
+                    let memOrder = match[3];
+                    // Handle case where only memory_order was provided (no value)
+                    if (value.includes('memory_order')) {
+                        memOrder = value;
+                        value = '1';
+                    }
+                    ops.push({ id: nextId++, varName: match[1], type: 'write', value: value, isAtomic: true, memoryOrder: parseMemoryOrder(memOrder) });
+                    continue;
+                }
+
+                // [auto] var = x.load(memory_order) - atomic read with assignment
+                match = stmt.match(/(?:auto\s+)?(\w+)\s*=\s*(\w+)\.load\s*\(\s*((?:std::)?memory_order_\w+)?\s*\)/);
+                if (match) {
+                    ops.push({ id: nextId++, varName: match[2], type: 'read', value: '', isAtomic: true, memoryOrder: parseMemoryOrder(match[3]) });
+                    continue;
+                }
+
+                // x.load(memory_order) - standalone atomic read
+                match = stmt.match(/(\w+)\.load\s*\(\s*((?:std::)?memory_order_\w+)?\s*\)/);
+                if (match) {
+                    ops.push({ id: nextId++, varName: match[1], type: 'read', value: '', isAtomic: true, memoryOrder: parseMemoryOrder(match[2]) });
+                    continue;
+                }
+
+                // .fetch_add/sub/etc(value, memory_order) - atomic RMW
+                match = stmt.match(/(\w+)\.fetch_(\w+)\s*\(\s*([^,)]+)\s*(?:,\s*((?:std::)?memory_order_\w+))?\s*\)/);
+                if (match) {
+                    let value = match[3].trim();
+                    let memOrder = match[4];
+                    if (value.includes('memory_order')) {
+                        memOrder = value;
+                        value = '1';
+                    }
+                    ops.push({ id: nextId++, varName: match[1], type: 'rmw', value: value, isAtomic: true, memoryOrder: parseMemoryOrder(memOrder) });
+                    continue;
+                }
+
+                // .exchange(value, memory_order) - atomic RMW
+                match = stmt.match(/(\w+)\.exchange\s*\(\s*([^,)]+)\s*(?:,\s*((?:std::)?memory_order_\w+))?\s*\)/);
+                if (match) {
+                    let value = match[2].trim();
+                    let memOrder = match[3];
+                    if (value.includes('memory_order')) {
+                        memOrder = value;
+                        value = '1';
+                    }
+                    ops.push({ id: nextId++, varName: match[1], type: 'rmw', value: value, isAtomic: true, memoryOrder: parseMemoryOrder(memOrder) });
+                    continue;
+                }
+
+                // [std::]atomic_thread_fence(memory_order) - fence
+                match = stmt.match(/(?:std::)?atomic_thread_fence\s*\(\s*((?:std::)?memory_order_\w+)?\s*\)/);
+                if (match) {
+                    ops.push({ id: nextId++, varName: 'fence', type: 'fence', value: '', isAtomic: true, memoryOrder: parseMemoryOrder(match[1]) });
+                    continue;
+                }
+
+                // var = value - non-atomic write (must not contain .load)
+                match = stmt.match(/^(\w+)\s*=\s*([^=].*)$/);
+                if (match && !match[2].includes('.load') && !match[2].includes('.store')) {
+                    ops.push({ id: nextId++, varName: match[1], type: 'write', value: match[2].trim(), isAtomic: false, memoryOrder: 'none' });
+                    continue;
+                }
+
+                // [auto] var = expr - non-atomic read (variable reference)
+                match = stmt.match(/(?:auto\s+)?(\w+)\s*=\s*(\w+)$/);
+                if (match && match[1] !== match[2]) {
+                    ops.push({ id: nextId++, varName: match[2], type: 'read', value: '', isAtomic: false, memoryOrder: 'none' });
+                    continue;
+                }
+            }
+            return ops;
+        }
+
+        function parseMemoryOrder(str) {
+            if (!str) return 'seq_cst';
+            const order = str.replace(/(?:std::)?memory_order_/, '');
+            return ['relaxed', 'acquire', 'release', 'acq_rel', 'seq_cst'].includes(order) ? order : 'seq_cst';
+        }
+
+        // Visualize
+        visualizeBtn.addEventListener('click', () => {
+            if (operations.length < 2) {
+                alert('Add at least 2 operations to visualize reorderings');
+                return;
+            }
+            const reorderings = generateReorderings(operations);
+            renderVisualization(operations, reorderings);
+        });
+
+        function generateReorderings(ops) {
+            const permutations = getPermutations(ops.map((_, i) => i));
+            return permutations.map(perm => {
+                const reordered = perm.map(i => ops[i]);
+                return { order: reordered, ...checkReorderingValidity(ops, reordered) };
+            });
+        }
+
+        function getPermutations(arr) {
+            if (arr.length <= 1) return [arr];
+            if (arr.length > 6) return [arr, [...arr].reverse()];
+            
+            const result = [];
+            for (let i = 0; i < arr.length; i++) {
+                const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+                for (const perm of getPermutations(rest)) {
+                    result.push([arr[i], ...perm]);
+                }
+            }
+            return result;
+        }
+
+        function checkReorderingValidity(original, reordered) {
+            const reasons = [];
+            let isValid = true;
+            const originalIndices = reordered.map(op => original.indexOf(op));
+
+            for (let i = 0; i < reordered.length; i++) {
+                for (let j = i + 1; j < reordered.length; j++) {
+                    const op1 = reordered[i], op2 = reordered[j];
+                    const origIdx1 = original.indexOf(op1), origIdx2 = original.indexOf(op2);
+
+                    if (origIdx1 > origIdx2) {
+                        const check = canReorder(op2, op1);
+                        if (!check.allowed) {
+                            isValid = false;
+                            reasons.push(check.reason);
+                        }
+                    }
+                }
+            }
+
+            return { isValid, isOriginal: originalIndices.every((idx, i) => idx === i), reasons: [...new Set(reasons)] };
+        }
+
+        function canReorder(opBefore, opAfter) {
+            // opBefore was originally BEFORE opAfter in program order
+            // We're asking: can opBefore move to AFTER opAfter?
+            
+            // Same variable dependencies (always enforced regardless of memory order)
+            if (opBefore.varName === opAfter.varName && opBefore.varName !== 'fence') {
+                if (opBefore.type === 'write' && opAfter.type === 'read')
+                    return { allowed: false, reason: `Read-after-write dependency on ${opBefore.varName}` };
+                if (opBefore.type === 'write' && opAfter.type === 'write')
+                    return { allowed: false, reason: `Write-after-write ordering on ${opBefore.varName}` };
+                if (opBefore.type === 'read' && opAfter.type === 'write')
+                    return { allowed: false, reason: `Write-after-read dependency on ${opBefore.varName}` };
+            }
+
+            // RELEASE semantics: operations BEFORE the release cannot move AFTER it
+            // If opAfter has release, opBefore cannot move past it
+            if (opAfter.memoryOrder === 'release' || opAfter.memoryOrder === 'acq_rel') {
+                return { allowed: false, reason: `Release on ${opAfter.varName} prevents prior operations from reordering after` };
+            }
+
+            // ACQUIRE semantics: operations AFTER the acquire cannot move BEFORE it  
+            // If opBefore has acquire, moving it down would cause opAfter to appear before the acquire
+            if (opBefore.memoryOrder === 'acquire' || opBefore.memoryOrder === 'acq_rel') {
+                return { allowed: false, reason: `Acquire on ${opBefore.varName} prevents later operations from reordering before` };
+            }
+
+            // SEQ_CST: total ordering - no reordering allowed with seq_cst operations
+            if (opBefore.memoryOrder === 'seq_cst' || opAfter.memoryOrder === 'seq_cst') {
+                return { allowed: false, reason: 'seq_cst enforces total ordering' };
+            }
+
+            // Fences act as barriers
+            if (opAfter.type === 'fence') {
+                if (opAfter.memoryOrder === 'release' || opAfter.memoryOrder === 'acq_rel' || opAfter.memoryOrder === 'seq_cst') {
+                    return { allowed: false, reason: 'Release fence prevents prior operations from reordering after' };
+                }
+            }
+            if (opBefore.type === 'fence') {
+                if (opBefore.memoryOrder === 'acquire' || opBefore.memoryOrder === 'acq_rel' || opBefore.memoryOrder === 'seq_cst') {
+                    return { allowed: false, reason: 'Acquire fence prevents later operations from reordering before' };
+                }
+            }
+
+            return { allowed: true, reason: '' };
+        }
+
+        function renderVisualization(original, reorderings) {
+            const valid = reorderings.filter(r => r.isValid);
+            const invalid = reorderings.filter(r => !r.isValid);
+            const declarations = generateDeclarations();
+            const originalCode = original.map(op => generateCppCode(op));
+
+            vizContent.innerHTML = `
+                <div class="timeline-section">
+                    <div class="section-title">Original Order</div>
+                    <pre class="code-block">${declarations.join('\n')}\n\n${originalCode.join('\n')}</pre>
+                    <div class="timeline">
+                        ${original.map((op, i) => `
+                            <div class="timeline-item ${op.isAtomic ? 'atomic' : ''}">
+                                ${op.isAtomic ? `<span class="order-tag order-${op.memoryOrder}">${op.memoryOrder}</span>` : ''}
+                                <div class="var-name">${formatOpDisplay(op)}</div>
+                                <div class="op-details">${op.type}${op.isAtomic ? ' (atomic)' : ''}</div>
+                            </div>
+                            ${i < original.length - 1 ? '<span class="arrow">→</span>' : ''}
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="timeline-section">
+                    <div class="section-title">Valid Reorderings (${valid.length}/${reorderings.length})</div>
+                    <div class="reordering-grid">
+                        ${valid.slice(0, 20).map(r => `
+                            <div class="reordering-option valid">
+                                <div class="reordering-header">
+                                    <span class="reordering-status status-valid">${r.isOriginal ? '✓ original' : '✓ valid'}</span>
+                                </div>
+                                <div class="compact-timeline">
+                                    ${r.order.map((op, i) => `
+                                        <span class="compact-item ${op.isAtomic ? 'atomic' : ''}">${formatOpDisplay(op)}</span>
+                                        ${i < r.order.length - 1 ? '<span style="color:var(--text-muted)">→</span>' : ''}
+                                    `).join('')}
+                                </div>
+                                <pre class="reordering-code">${r.order.map(op => generateCppCode(op)).join('\n')}</pre>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                ${invalid.length > 0 ? `
+                    <div class="timeline-section">
+                        <div class="section-title">Invalid Reorderings (${invalid.length})</div>
+                        <div class="reordering-grid">
+                            ${invalid.slice(0, 10).map(r => `
+                                <div class="reordering-option invalid">
+                                    <div class="reordering-header">
+                                        <span class="reordering-status status-invalid">✗ invalid</span>
+                                    </div>
+                                    <div class="compact-timeline">
+                                        ${r.order.map((op, i) => `
+                                            <span class="compact-item ${op.isAtomic ? 'atomic' : ''}">${formatOpDisplay(op)}</span>
+                                            ${i < r.order.length - 1 ? '<span style="color:var(--text-muted)">→</span>' : ''}
+                                        `).join('')}
+                                    </div>
+                                    <div class="reordering-reason">${r.reasons.join('; ')}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        renderOperationsList();
+    </script>
+</body>
+</html>
+
