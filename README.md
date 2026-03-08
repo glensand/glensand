@@ -2,7 +2,7 @@ Yoy may want to:
 - Check the repos I'm working on right now:
   - [hope-core](https://github.com/glensand/hope-core)
   - [hope-threading](https://github.com/glensand/hope-threading)
-  - [hope-proto](https://github.com/glensand/hope-proto)
+  - [hope-soa](https://github.com/glensand/hsoy))
   - [hope-json](https://github.com/glensand/hope-json)
   - [hope-io](https://github.com/glensand/hope-io)
   - [hope-log](https://github.com/glensand/hope-logger)
